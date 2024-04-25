@@ -50,7 +50,7 @@ func CalculateTaxHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	tax := CalculateTax(input.TotalIncome)
+	tax := CalculateTax(input.TotalIncome, input.WHT)
 	response := TaxCalculationResponse{Tax: tax}
 
 	return c.JSON(http.StatusOK, response)
@@ -61,10 +61,14 @@ func validateInput(input TaxCalculationInput) error {
 		return errors.New("total income cannot be negative")
 	}
 
+	if input.WHT < 0 || input.WHT > input.TotalIncome {
+		return errors.New("invalid withholding tax")
+	}
+
 	return nil
 }
 
-func CalculateTax(totalIncome float64) float64 {
+func CalculateTax(totalIncome, wht float64) float64 {
 	taxableIncome := (totalIncome - personalAllowance) - baseThreshold
 
 	if taxableIncome <= 0 {
@@ -84,6 +88,8 @@ func CalculateTax(totalIncome float64) float64 {
 		preiousRate := taxBrackets[index-1].rate
 		tax = taxableIncome * preiousRate
 	}
+
+	tax -= wht
 
 	if tax < 0 {
 		tax = 0

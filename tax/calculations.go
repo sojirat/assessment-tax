@@ -57,7 +57,7 @@ func CalculateTaxHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	tax := CalculateTax(input.TotalIncome, input.Allowances)
+	tax := CalculateTax(input.TotalIncome, input.WHT, input.Allowances)
 	response := TaxCalculationResponse{Tax: tax}
 
 	return c.JSON(http.StatusOK, response)
@@ -66,6 +66,10 @@ func CalculateTaxHandler(c echo.Context) error {
 func validateInput(input TaxCalculationInput) error {
 	if input.TotalIncome < 0 {
 		return errors.New("total income cannot be negative")
+	}
+
+	if input.WHT < 0 || input.WHT > input.TotalIncome {
+		return errors.New("invalid withholding tax")
 	}
 
 	var validAllowanceTypes = map[string]bool{
@@ -120,7 +124,7 @@ func validateInput(input TaxCalculationInput) error {
 	return nil
 }
 
-func CalculateTax(totalIncome float64, allowances []Allowance) float64 {
+func CalculateTax(totalIncome, wht float64, allowances []Allowance) float64 {
 	totalAllowance := 0.0
 	for _, allowance := range allowances {
 		totalAllowance += allowance.Amount
@@ -144,6 +148,8 @@ func CalculateTax(totalIncome float64, allowances []Allowance) float64 {
 		preiousRate := taxBrackets[index-1].rate
 		tax = taxableIncome * preiousRate
 	}
+
+	tax -= wht
 
 	if tax < 0 {
 		tax = 0

@@ -10,12 +10,14 @@ func TestCalculate(t *testing.T) {
 	tests := []struct {
 		name        string
 		totalIncome float64
+		wht         float64
 		allowances  []tax.Allowance
 		expected    float64
 	}{
 		{
-			name:        "Adjusted test 1",
+			name:        "Basic Test 1",
 			totalIncome: 500000.0,
+			wht:         0.0,
 			allowances: []tax.Allowance{
 				{
 					AllowanceType: "donation",
@@ -28,7 +30,7 @@ func TestCalculate(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			if actual := tax.CalculateTax(tc.totalIncome, tc.allowances); actual != tc.expected {
+			if actual := tax.CalculateTax(tc.totalIncome, tc.wht, tc.allowances); actual != tc.expected {
 				t.Errorf("Expected %f, got %f", tc.expected, actual)
 			}
 		})

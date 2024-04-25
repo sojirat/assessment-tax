@@ -25,6 +25,13 @@ const (
 	personalAllowance = 60000.0
 )
 
+const (
+	minPersonalAllowance = 10000.0
+	maxPersonalAllowance = 100000.0
+	maxDonationAllowance = 100000.0
+	maxKReceiptAllowance = 100000.0
+)
+
 type TaxCalculationInput struct {
 	TotalIncome float64     `json:"totalIncome"`
 	WHT         float64     `json:"wht"`
@@ -50,7 +57,7 @@ func CalculateTaxHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	tax := CalculateTax(input.TotalIncome, input.WHT)
+	tax := CalculateTax(input.TotalIncome, input.WHT, input.Allowances)
 	response := TaxCalculationResponse{Tax: tax}
 
 	return c.JSON(http.StatusOK, response)
@@ -65,11 +72,64 @@ func validateInput(input TaxCalculationInput) error {
 		return errors.New("invalid withholding tax")
 	}
 
+	var validAllowanceTypes = map[string]bool{
+		"personal":  true,
+		"donation":  true,
+		"k-receipt": true,
+	}
+
+	totalPersonalAllowance := 0.0
+	totalDonationAllowance := 0.0
+	totalKReceiptAllowance := 0.0
+
+	for _, allowance := range input.Allowances {
+		if allowance.Amount < 0 {
+			return errors.New("allowance amount cannot be negative")
+		}
+
+		if !validAllowanceTypes[allowance.AllowanceType] {
+			return errors.New("invalid allowance type")
+		}
+
+		switch allowance.AllowanceType {
+		case "personal":
+			totalPersonalAllowance += allowance.Amount
+		case "donation":
+			totalDonationAllowance += allowance.Amount
+		case "k-receipt":
+			totalKReceiptAllowance += allowance.Amount
+		}
+	}
+
+	if totalPersonalAllowance != 0 && (totalPersonalAllowance < minPersonalAllowance) {
+		return errors.New("personal allowance must be at least 10,000 baht")
+	}
+
+	if totalPersonalAllowance > maxPersonalAllowance {
+		return errors.New("personal allowance exceeds maximum limit")
+	}
+
+	if totalDonationAllowance > maxDonationAllowance {
+		return errors.New("donation allowance exceeds maximum limit")
+	}
+
+	if totalKReceiptAllowance > maxKReceiptAllowance {
+		return errors.New("k-receipt allowance exceeds maximum limit")
+	}
+
+	if totalKReceiptAllowance < 0 {
+		return errors.New("k-receipt allowance cannot be negative")
+	}
+
 	return nil
 }
 
-func CalculateTax(totalIncome, wht float64) float64 {
-	taxableIncome := (totalIncome - personalAllowance) - baseThreshold
+func CalculateTax(totalIncome, wht float64, allowances []Allowance) float64 {
+	totalAllowance := 0.0
+	for _, allowance := range allowances {
+		totalAllowance += allowance.Amount
+	}
+	taxableIncome := (totalIncome - personalAllowance) - totalAllowance - baseThreshold
 
 	if taxableIncome <= 0 {
 		return 0

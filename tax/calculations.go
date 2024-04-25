@@ -11,13 +11,15 @@ import (
 type taxBracket struct {
 	threshold float64
 	rate      float64
+	level     string
 }
 
 var taxBrackets = []taxBracket{
-	{threshold: 150000.0, rate: 0.1},
-	{threshold: 500000.0, rate: 0.15},
-	{threshold: 1000000.0, rate: 0.2},
-	{threshold: 2000000.0, rate: 0.35},
+	{threshold: 0.0, rate: 0.0, level: "0-150,000"},
+	{threshold: 150000.0, rate: 0.1, level: "150,001-500,000"},
+	{threshold: 500000.0, rate: 0.15, level: "500,001-1,000,000"},
+	{threshold: 1000000.0, rate: 0.2, level: "1,000,001-2,000,000"},
+	{threshold: 2000000.0, rate: 0.35, level: "2,000,001 ขึ้นไป"},
 }
 
 const (
@@ -44,7 +46,13 @@ type Allowance struct {
 }
 
 type TaxCalculationResponse struct {
-	Tax float64 `json:"tax"`
+	Tax      float64                    `json:"tax"`
+	TaxLevel []LevelCalculationResponse `json:"taxLevel"`
+}
+
+type LevelCalculationResponse struct {
+	Level string  `json:"level"`
+	Tax   float64 `json:"tax"`
 }
 
 func CalculateTaxHandler(c echo.Context) error {
@@ -57,8 +65,7 @@ func CalculateTaxHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	tax := CalculateTax(input.TotalIncome, input.WHT, input.Allowances)
-	response := TaxCalculationResponse{Tax: tax}
+	response := CalculateTax(input.TotalIncome, input.WHT, input.Allowances)
 
 	return c.JSON(http.StatusOK, response)
 }
@@ -124,7 +131,7 @@ func validateInput(input TaxCalculationInput) error {
 	return nil
 }
 
-func CalculateTax(totalIncome, wht float64, allowances []Allowance) float64 {
+func CalculateTax(totalIncome, wht float64, allowances []Allowance) TaxCalculationResponse {
 	totalAllowance := 0.0
 	for _, allowance := range allowances {
 		totalAllowance += allowance.Amount
@@ -132,7 +139,7 @@ func CalculateTax(totalIncome, wht float64, allowances []Allowance) float64 {
 	taxableIncome := (totalIncome - personalAllowance) - totalAllowance - baseThreshold
 
 	if taxableIncome <= 0 {
-		return 0
+		return TaxCalculationResponse{}
 	}
 
 	sort.Slice(taxBrackets, func(i, j int) bool {
@@ -155,5 +162,22 @@ func CalculateTax(totalIncome, wht float64, allowances []Allowance) float64 {
 		tax = 0
 	}
 
-	return tax
+	var taxBracketsInterface []LevelCalculationResponse
+	for i, v := range taxBrackets {
+		var isTax = 0.0
+		if index-1 == i {
+			isTax = tax
+		}
+
+		taxBracketsInterface = append(taxBracketsInterface, LevelCalculationResponse{
+			Level: v.level,
+			Tax:   isTax,
+		})
+	}
+
+	var response TaxCalculationResponse
+	response.Tax = tax
+	response.TaxLevel = taxBracketsInterface
+
+	return response
 }

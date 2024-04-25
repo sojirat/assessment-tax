@@ -1,16 +1,16 @@
 package main
 
 import (
-	"net/http"
 	"os"
 
 	"github.com/labstack/echo/v4"
+	"github.com/sojirat/assessment-tax/tax"
 )
 
 func main() {
 	e := echo.New()
-	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Hello, Go Bootcamp!")
-	})
+
+	e.POST("tax/calculations", tax.CalculateTaxHandler)
+
 	e.Logger.Fatal(e.Start(":" + os.Getenv("PORT")))
 }

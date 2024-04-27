@@ -46,8 +46,9 @@ type Allowance struct {
 }
 
 type TaxCalculationResponse struct {
-	Tax      float64                    `json:"tax"`
-	TaxLevel []LevelCalculationResponse `json:"taxLevel"`
+	Tax       float64                    `json:"tax"`
+	TaxRefund float64                    `json:"taxRefund,omitempty"`
+	TaxLevel  []LevelCalculationResponse `json:"taxLevel"`
 }
 
 type LevelCalculationResponse struct {
@@ -136,7 +137,7 @@ func CalculateTax(totalIncome, wht float64, allowances []Allowance) TaxCalculati
 	for _, allowance := range allowances {
 		totalAllowance += allowance.Amount
 	}
-	taxableIncome := (totalIncome - personalAllowance) - totalAllowance - baseThreshold
+	taxableIncome := (totalIncome - personalAllowance) - totalAllowance
 
 	if taxableIncome <= 0 {
 		return TaxCalculationResponse{}
@@ -153,20 +154,24 @@ func CalculateTax(totalIncome, wht float64, allowances []Allowance) TaxCalculati
 	var tax float64
 	if index > 0 {
 		preiousRate := taxBrackets[index-1].rate
-		tax = taxableIncome * preiousRate
+		tax = (taxableIncome - baseThreshold) * preiousRate
 	}
 
-	tax -= wht
+	taxRate := tax
 
-	if tax < 0 {
+	var taxRefund float64 = 0
+	if wht > tax {
+		taxRefund = wht - tax
 		tax = 0
+	} else {
+		tax -= wht
 	}
 
 	var taxBracketsInterface []LevelCalculationResponse
 	for i, v := range taxBrackets {
 		var isTax = 0.0
 		if index-1 == i {
-			isTax = tax
+			isTax = taxRate
 		}
 
 		taxBracketsInterface = append(taxBracketsInterface, LevelCalculationResponse{
@@ -177,6 +182,7 @@ func CalculateTax(totalIncome, wht float64, allowances []Allowance) TaxCalculati
 
 	var response TaxCalculationResponse
 	response.Tax = tax
+	response.TaxRefund = taxRefund
 	response.TaxLevel = taxBracketsInterface
 
 	return response

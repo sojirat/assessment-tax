@@ -7,6 +7,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/sojirat/assessment-tax/admin/deductions"
+	"github.com/sojirat/assessment-tax/tax"
 )
 
 func main() {
@@ -17,6 +18,7 @@ func main() {
 
 	e := echo.New()
 
+	e.POST("tax/calculations", tax.CalculateTaxHandler)
 	e.POST("admin/deductions/personal", deductions.UpdatePersonalDeductionHandler)
 
 	e.Logger.Fatal(e.Start(":" + os.Getenv("PORT")))

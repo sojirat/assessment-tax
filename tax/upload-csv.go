@@ -16,6 +16,7 @@ type CSVFileResponse struct {
 type CSVFileDetailResponse struct {
 	TotalIncome float64 `json:"totalIncome"`
 	Tax         float64 `json:"tax"`
+	TaxRefund   float64 `json:"taxRefund,omitempty"`
 }
 
 func ReadCSVFileHandler(c echo.Context) error {
@@ -27,7 +28,7 @@ func ReadCSVFileHandler(c echo.Context) error {
 
 	var responseDetail []CSVFileDetailResponse
 	for _, d := range data {
-		if err := validateInput(d); err != nil {
+		if err := ValidateInput(d); err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 
@@ -36,6 +37,7 @@ func ReadCSVFileHandler(c echo.Context) error {
 		responseDetail = append(responseDetail, CSVFileDetailResponse{
 			TotalIncome: d.TotalIncome,
 			Tax:         result.Tax,
+			TaxRefund:   result.TaxRefund,
 		})
 	}
 

@@ -70,7 +70,7 @@ func CalculateTaxHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	if err := validateInput(input); err != nil {
+	if err := ValidateInput(input); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
@@ -79,7 +79,7 @@ func CalculateTaxHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
-func validateInput(input TaxCalculationInput) error {
+func ValidateInput(input TaxCalculationInput) error {
 	setting, _ := SelectSetting()
 	maxKReceiptAllowance = setting.KReceipt
 	personalAllowance = setting.Personal

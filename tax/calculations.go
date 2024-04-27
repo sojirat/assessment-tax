@@ -125,7 +125,7 @@ func CalculateTax(totalIncome float64, allowances []Allowance) float64 {
 	for _, allowance := range allowances {
 		totalAllowance += allowance.Amount
 	}
-	taxableIncome := (totalIncome - personalAllowance) - totalAllowance - baseThreshold
+	taxableIncome := (totalIncome - personalAllowance) - totalAllowance
 
 	if taxableIncome <= 0 {
 		return 0
@@ -142,7 +142,7 @@ func CalculateTax(totalIncome float64, allowances []Allowance) float64 {
 	var tax float64
 	if index > 0 {
 		preiousRate := taxBrackets[index-1].rate
-		tax = taxableIncome * preiousRate
+		tax = (taxableIncome - baseThreshold) * preiousRate
 	}
 
 	if tax < 0 {

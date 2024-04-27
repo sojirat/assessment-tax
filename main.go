@@ -20,6 +20,7 @@ func main() {
 
 	e.POST("tax/calculations", tax.CalculateTaxHandler)
 	e.POST("admin/deductions/personal", deductions.UpdatePersonalDeductionHandler)
+	e.POST("admin/deductions/k-receipt", deductions.UpdateKReceiptDeductionHandler)
 
 	e.Logger.Fatal(e.Start(":" + os.Getenv("PORT")))
 }

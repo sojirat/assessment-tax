@@ -19,6 +19,7 @@ func main() {
 	e := echo.New()
 
 	e.POST("tax/calculations", tax.CalculateTaxHandler)
+	e.POST("tax/calculations/upload-csv", tax.ReadCSVFileHandler)
 	e.POST("admin/deductions/personal", deductions.UpdatePersonalDeductionHandler)
 	e.POST("admin/deductions/k-receipt", deductions.UpdateKReceiptDeductionHandler)
 

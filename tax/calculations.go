@@ -4,8 +4,10 @@ import (
 	"errors"
 	"net/http"
 	"sort"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
+	"github.com/sojirat/assessment-tax/sql"
 )
 
 type taxBracket struct {
@@ -13,26 +15,6 @@ type taxBracket struct {
 	rate      float64
 	level     string
 }
-
-var taxBrackets = []taxBracket{
-	{threshold: 0.0, rate: 0.0, level: "0-150,000"},
-	{threshold: 150000.0, rate: 0.1, level: "150,001-500,000"},
-	{threshold: 500000.0, rate: 0.15, level: "500,001-1,000,000"},
-	{threshold: 1000000.0, rate: 0.2, level: "1,000,001-2,000,000"},
-	{threshold: 2000000.0, rate: 0.35, level: "2,000,001 ขึ้นไป"},
-}
-
-const (
-	baseThreshold     = 150000.0
-	personalAllowance = 60000.0
-)
-
-const (
-	minPersonalAllowance = 10000.0
-	maxPersonalAllowance = 100000.0
-	maxDonationAllowance = 100000.0
-	maxKReceiptAllowance = 100000.0
-)
 
 type TaxCalculationInput struct {
 	TotalIncome float64     `json:"totalIncome"`
@@ -56,6 +38,32 @@ type LevelCalculationResponse struct {
 	Tax   float64 `json:"tax"`
 }
 
+type SelectSettingResponse struct {
+	Personal float64 `json:"personal"`
+	KReceipt float64 `json:"k_receipt"`
+}
+
+var taxBrackets = []taxBracket{
+	{threshold: 0.0, rate: 0.0, level: "0-150,000"},
+	{threshold: 150000.0, rate: 0.1, level: "150,001-500,000"},
+	{threshold: 500000.0, rate: 0.15, level: "500,001-1,000,000"},
+	{threshold: 1000000.0, rate: 0.2, level: "1,000,001-2,000,000"},
+	{threshold: 2000000.0, rate: 0.35, level: "2,000,001 ขึ้นไป"},
+}
+
+var (
+	maxKReceiptAllowance = 50000.0
+	personalAllowance    = 60000.0
+)
+
+const (
+	baseThreshold = 150000.0
+
+	minPersonalAllowance = 10000.0
+	maxPersonalAllowance = 100000.0
+	maxDonationAllowance = 100000.0
+)
+
 func CalculateTaxHandler(c echo.Context) error {
 	var input TaxCalculationInput
 	if err := c.Bind(&input); err != nil {
@@ -72,6 +80,10 @@ func CalculateTaxHandler(c echo.Context) error {
 }
 
 func validateInput(input TaxCalculationInput) error {
+	setting, _ := SelectSetting()
+	maxKReceiptAllowance = setting.KReceipt
+	personalAllowance = setting.Personal
+
 	if input.TotalIncome < 0 {
 		return errors.New("total income cannot be negative")
 	}
@@ -110,19 +122,19 @@ func validateInput(input TaxCalculationInput) error {
 	}
 
 	if totalPersonalAllowance != 0 && (totalPersonalAllowance < minPersonalAllowance) {
-		return errors.New("personal allowance must be at least 10,000 baht")
+		return errors.New("personal allowance must be at least " + strconv.FormatFloat(minPersonalAllowance, 'f', 0, 64) + " baht")
 	}
 
 	if totalPersonalAllowance > maxPersonalAllowance {
-		return errors.New("personal allowance exceeds maximum limit")
+		return errors.New("personal allowance exceeds maximum " + strconv.FormatFloat(maxPersonalAllowance, 'f', 0, 64) + " baht")
 	}
 
 	if totalDonationAllowance > maxDonationAllowance {
-		return errors.New("donation allowance exceeds maximum limit")
+		return errors.New("donation allowance exceeds maximum " + strconv.FormatFloat(maxDonationAllowance, 'f', 0, 64) + " baht")
 	}
 
 	if totalKReceiptAllowance > maxKReceiptAllowance {
-		return errors.New("k-receipt allowance exceeds maximum limit")
+		return errors.New("k-receipt allowance exceeds maximum " + strconv.FormatFloat(maxKReceiptAllowance, 'f', 0, 64) + " baht")
 	}
 
 	if totalKReceiptAllowance < 0 {
@@ -186,4 +198,20 @@ func CalculateTax(totalIncome, wht float64, allowances []Allowance) TaxCalculati
 	response.TaxLevel = taxBracketsInterface
 
 	return response
+}
+
+func SelectSetting() (SelectSettingResponse, error) {
+	db := sql.Connect()
+	defer db.Close()
+
+	stmt, err := db.Prepare(`SELECT personal, k_receipt FROM setting WHERE id = 1;`)
+	if err != nil {
+		return SelectSettingResponse{}, err
+	}
+	defer stmt.Close()
+
+	var response SelectSettingResponse
+	err = stmt.QueryRow().Scan(&response.Personal, &response.KReceipt)
+
+	return response, err
 }

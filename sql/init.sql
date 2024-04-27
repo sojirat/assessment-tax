@@ -5,5 +5,5 @@ CREATE TABLE IF NOT EXISTS setting (
 );
 
 INSERT INTO setting (id, personal, k_receipt) VALUES
-    (1, 100000, 100000)
+    (1, 60000, 50000)
 ON CONFLICT (id) DO NOTHING;

@@ -27,8 +27,8 @@ func main() {
 	e.POST("tax/calculations", tax.CalculateTaxHandler)
 	e.POST("tax/calculations/upload-csv", tax.ReadCSVFileHandler)
 
-	e.POST("/admin/deductions/personal", deductions.UpdatePersonalDeductionHandler, middleware.AuthMiddleware)
-	e.POST("/admin/deductions/k-receipt", deductions.UpdateKReceiptDeductionHandler, middleware.AuthMiddleware)
+	e.PATCH("/admin/deductions/personal", deductions.UpdatePersonalDeductionHandler, middleware.AuthMiddleware)
+	e.PATCH("/admin/deductions/k-receipt", deductions.UpdateKReceiptDeductionHandler, middleware.AuthMiddleware)
 
 	go func() {
 		if err := e.Start(":" + os.Getenv("PORT")); err != nil && err != http.ErrServerClosed {

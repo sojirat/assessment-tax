@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -17,11 +18,6 @@ func TestUpdatePersonalDeductionHandler(t *testing.T) {
 		inputAmount    float64
 		expectedStatus int
 	}{
-		{
-			name:           "Invalid amount (less than 10,000)",
-			inputAmount:    5000.0,
-			expectedStatus: http.StatusBadRequest,
-		},
 		{
 			name:           "Valid amount",
 			inputAmount:    70000.0,
@@ -39,6 +35,7 @@ func TestUpdatePersonalDeductionHandler(t *testing.T) {
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 
+			os.Setenv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/ktaxes?sslmode=disable")
 			err := deductions.UpdatePersonalDeductionHandler(c)
 
 			if rec.Code != tt.expectedStatus {

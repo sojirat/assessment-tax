@@ -17,7 +17,7 @@ func TestCalculate(t *testing.T) {
 		expected    tax.TaxCalculationResponse
 	}{
 		{
-			name:        "Basic Test 1",
+			name:        "Valid tax calculation",
 			totalIncome: 500000.0,
 			wht:         0.0,
 			allowances: []tax.Allowance{

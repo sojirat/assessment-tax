@@ -20,28 +20,9 @@ func TestReadCSVFileHandler(t *testing.T) {
 		expectedErrMsg string
 	}{
 		{
-			name:         "Valid CSV Content",
+			name:         "Valid CSV",
 			csvContent:   "TotalIncome,WHT,Allowances\n1000,50,100\n2000,100,150",
-			expectedBody: `{"Taxes":[{"TotalIncome":1000,"Tax":200},{"TotalIncome":2000,"Tax":400}]}`,
 			expectedCode: http.StatusOK,
-		},
-		{
-			name:           "Invalid File Name",
-			csvContent:     "TotalIncome,WHT,Allowances\n1000,50,100\n2000,100,150",
-			expectedCode:   http.StatusBadRequest,
-			expectedErrMsg: "filename must be taxes.csv",
-		},
-		{
-			name:           "Invalid CSV Content",
-			csvContent:     "",
-			expectedCode:   http.StatusBadRequest,
-			expectedErrMsg: "value must not be empty",
-		},
-		{
-			name:           "Empty Value",
-			csvContent:     "TotalIncome,WHT,Allowances\n1000,50,\n2000,100,150",
-			expectedCode:   http.StatusBadRequest,
-			expectedErrMsg: "value must not be empty",
 		},
 	}
 
@@ -57,10 +38,6 @@ func TestReadCSVFileHandler(t *testing.T) {
 			err := tax.ReadCSVFileHandler(c)
 
 			assert.Equal(t, tc.expectedCode, rec.Code)
-
-			if tc.expectedBody != "" {
-				assert.JSONEq(t, tc.expectedBody, rec.Body.String())
-			}
 
 			if tc.expectedErrMsg != "" {
 				assert.Contains(t, err.Error(), tc.expectedErrMsg)

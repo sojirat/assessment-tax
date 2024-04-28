@@ -34,7 +34,7 @@ func TestUpdateKReceiptDeductionHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			req := httptest.NewRequest(http.MethodPost, "localhost:8080/admin/deductions/k-receipt", strings.NewReader(fmt.Sprintf(`{"amount": %f}`, tt.inputAmount)))
+			req := httptest.NewRequest(http.MethodPatch, "localhost:8080/admin/deductions/k-receipt", strings.NewReader(fmt.Sprintf(`{"amount": %f}`, tt.inputAmount)))
 			req.Header.Set("Content-Type", "application/json")
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
